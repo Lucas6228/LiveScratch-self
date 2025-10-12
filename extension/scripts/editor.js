@@ -160,9 +160,9 @@ async function onTabLoad() {
     waitFor(()=>(!isNaN(parseFloat(location.pathname.split('/')[2])))).then(()=>{scratchId = location.pathname.split('/')[2];});
 
     // trap vm and store
-    let reactInst = Object.values(await getObj('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child);
-    vm = reactInst.child.child.child.stateNode.props.vm;
-    store = reactInst.child.child.child.stateNode.context.store;
+    let reactInst = Object.values(await getObj('div[class^="stage-header_stage-menu-wrapper_"]')).find((x) => x.child);
+    vm = reactInst.child.memoizedProps.vm;
+    store = reactInst.child.dependencies.firstContext.memoizedValue.store;
     addButtonInjectors();
     blId = isNaN(parseFloat(location.pathname.split('/')[2])) ? '' : await getBlocklyId(scratchId); //todo: should this use the result of the getBlId function, or a more specific endpoint to authenticating project joining?
     if(!blId) {
