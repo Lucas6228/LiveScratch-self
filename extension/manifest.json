@@ -33,7 +33,7 @@
     ],
     "optional_permissions":["notifications"],
     "web_accessible_resources" : [{
-        "resources":["/scripts/editor.js","/scripts/vm.js","/scripts/badge.js","/scripts/mystuff.js","/scripts/turbowarp_editor.js","/img/LogoLiveScratch.svg","/sounds/ping.mp3"],
+        "resources":["/scripts/editor.js", "/scripts/badge.js","/scripts/mystuff.js","/img/LogoLiveScratch.svg","/sounds/ping.mp3"],
         "matches":["<all_urls>"]
     }],
     "externally_connectable": {
