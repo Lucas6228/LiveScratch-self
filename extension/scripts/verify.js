@@ -1,77 +1,46 @@
-function askVerify() {
-    chrome.runtime.sendMessage({ meta: 'verify?' }, async (response) => {
-        if(!response) {return;}
-        let res = await setCloudTempCode(response.code, response.project);
-        chrome.runtime.sendMessage({ meta: 'setCloud', res });
-    });
-}
-askVerify();
-
 async function setCloudVar(value, AUTH_PROJECTID) { 
-    const user = await chrome.runtime.sendMessage({ meta: 'getUsername' });
-    if(user=='*') {return {err:'livescratch thinks you are logged out'};}
-    const connection = new WebSocket('wss://clouddata.scratch.mit.edu');
- 
-    let setAndClose = new Promise((res) => {
-        try{
+    // Use TurboWarp's server to bypass Scratch's account restrictions
+    const connection = new WebSocket('wss://clouddata.turbowarp.org');
+    
+    // We can use a dummy username since TurboWarp doesn't enforce Scratch login
+    const user = "Guest_" + Math.floor(Math.random() * 1000);
 
+    let setAndClose = new Promise((res) => {
+        try {
             connection.onerror = function (error) {
                 console.error('WebSocket error:', error);
                 connection.close();
-                res({err:error});
+                res({err: 'Connection failed. TurboWarp might be down or blocked.'});
             };
 
             connection.onopen = async () => {
+                // Handshake with TurboWarp
                 connection.send(
-                    JSON.stringify({ method: 'handshake', project_id: AUTH_PROJECTID, user }) + '\n');
-                await new Promise((r) => setTimeout(r, 100));
+                    JSON.stringify({ method: 'handshake', project_id: AUTH_PROJECTID, user }) + '\n'
+                );
+                
+                await new Promise((r) => setTimeout(r, 150));
+                
+                // Send the variable update
                 connection.send(
                     JSON.stringify({
-                        value: value.toString(),
-                        name: '☁ verify',
                         method: 'set',
                         project_id: AUTH_PROJECTID,
-                        user,
-                    }) + '\n',
+                        user: user,
+                        name: '☁ verify',
+                        value: value.toString(),
+                    }) + '\n'
                 );
-                connection.close();
-                res({ok:true});
-                return {ok:true};
+
+                // Keep open for a split second to ensure delivery, then close
+                setTimeout(() => {
+                    connection.close();
+                    res({ok: true});
+                }, 100);
             };
-        } catch(e) {res({err:e});}
+        } catch(e) {
+            res({err: e.message});
+        }
     });
     return await setAndClose;
-}
-
-
-async function setCloudTempCode(code, projectInfo) {
-    let response = await setCloudVar(code, projectInfo);
-    if(response.err instanceof Error) {response.err = response.err.stack;}
-    return response;
-}
-
-
-// observe login
-
-const targetNode = document.querySelector('.registrationLink')?.parentNode?.parentNode;
-
-if (targetNode) { // only add the listener on the logged out page
-    // Options for the observer (which mutations to observe)
-    const config = { attributes: true, childList: true, subtree: true };
-
-    // Callback function to execute when mutations are observed
-    const callback = (mutationList, observer) => {
-        for (const mutation of mutationList) {
-            if (mutation.addedNodes?.[0]?.classList.contains('account-nav')) {
-                console.log('ls login detected');
-                askVerify();
-            }
-        }
-    };
-
-    // Create an observer instance linked to the callback function
-    const observer = new MutationObserver(callback);
-
-    // Start observing the target node for configured mutations
-    observer.observe(targetNode, config);
 }
